@@ -1,11 +1,17 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @TeleOp
 public class Flywheel extends LinearOpMode {
@@ -14,37 +20,59 @@ public class Flywheel extends LinearOpMode {
         // Declare our motors
         // Make sure your ID's match your configuration
         DcMotor flyWheel = hardwareMap.dcMotor.get("flyWheel");
+        flyWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        flyWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         waitForStart();
 
         // x is start, b is stop
+        List<Integer> positions = new ArrayList<Integer>();
+        List<Long> time = new ArrayList<>();
 
-        boolean isRunning = false;
+        double direction = 0.0;
 
         if (isStopRequested()) return;
 
-        int lastPosition = flyWheel.getCurrentPosition();
-        ElapsedTime timer = new ElapsedTime();
-        PID pid = new PID();
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         while (opModeIsActive()) {
-            if (gamepad1.x) isRunning = true;
-            if (gamepad1.b) isRunning = false;
+            if (gamepad1.x) direction = 1.0;
+            if (gamepad1.y) direction = -1.0;
+            if (gamepad1.b) direction = 0.0;
 
-            telemetry.addData("position", flyWheel.getCurrentPosition());
+            int flyWheelPosition = -flyWheel.getCurrentPosition();
+            positions.add(flyWheelPosition);
+            long timeCurrent = System.currentTimeMillis();
+            time.add(timeCurrent);
 
-            if (!isRunning) {
-                flyWheel.setPower(0);
-            } else {
-                int changeInPos = flyWheel.getCurrentPosition()-lastPosition;
-                double changeInTime = timer.seconds();
-                double velocity = changeInPos/changeInTime;
-                double power = pid.calc(FlywheelConstants.ticksInRotation, velocity);
-                flyWheel.setPower(power);
-                lastPosition = flyWheel.getCurrentPosition();
-                telemetry.addData("velocity", velocity);
-                timer.reset();
+            if (positions.size() > 10) {
+                positions.remove(0);
             }
+            if (time.size() > 10) {
+                time.remove(0);
+            }
+
+            telemetry.addData("position", flyWheelPosition);
+            telemetry.addData("direction", direction);
+
+            int changeInPos = flyWheelPosition - positions.get(0);
+            double changeInTime = timeCurrent - time.get(0);
+            double velocity = ((double)changeInPos) / (changeInTime / 1000.0);
+//            double power = pid.calc(FlywheelConstants.ticksInRotation, velocity);
+            double error = FlywheelConstants.ticksInRotation * direction - velocity;
+            double power = error * PID.Kp;
+
+            telemetry.addData("velocity", velocity);
+            telemetry.addData("delta pos", changeInPos);
+            telemetry.addData("delta t", changeInTime);
+
+            if (direction == 0.0) {
+                flyWheel.setPower(0.0);
+            } else {
+                flyWheel.setPower(power);
+            }
+            telemetry.addData("power", power);
+
             telemetry.update();
         }
     }
@@ -52,12 +80,12 @@ public class Flywheel extends LinearOpMode {
 
 @Config
 class FlywheelConstants {
-    public static double ticksInRotation = 8192.0;
+    public static double ticksInRotation = 384;
 }
 
 @Config
 class PID {
-    public static double Kp = 0;
+    public static double Kp = 0.001;
     public static double Ki = 0;
     public static double Kd = 0;
     double integralSum = 0;
