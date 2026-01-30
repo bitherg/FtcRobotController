@@ -5,16 +5,18 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
+
 
 @Autonomous(name = "MyAutoOpMode")
 public class autonomous extends LinearOpMode {
-
+    Servo blocker;
     // Declare motors
     DcMotor frontLeftMotor;
     DcMotor backLeftMotor;
     DcMotor frontRightMotor;
     DcMotor backRightMotor;
-    DcMotorEx armMotor;
+    DcMotorEx flyWheel;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -24,39 +26,151 @@ public class autonomous extends LinearOpMode {
         backLeftMotor = hardwareMap.get(DcMotor.class, "backLeftMotor");
         frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
         backRightMotor = hardwareMap.get(DcMotor.class, "backRightMotor");
-
+        blocker = hardwareMap.get(Servo.class,"blocker");
         // Initialize the arm motor as DcMotorEx
-        armMotor = hardwareMap.get(DcMotorEx.class, "arm");
+        flyWheel = hardwareMap.get(DcMotorEx.class, "flyWheel");
 
         // Set motor directions (reverse right side if needed)
         frontRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         backRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // Set arm motor braking and mode
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // Wait for the start button
-        waitForStart();
 
+
+    frontRightMotor.setPower(1);
+    frontLeftMotor.setPower(1);
+    sleep(420);
+    frontRightMotor.setPower(0);
+    frontLeftMotor.setPower(0);
+}
         // Example autonomous movement
-        frontLeftMotor.setPower(0.5);
-        backLeftMotor.setPower(0.5);
-        frontRightMotor.setPower(0.5);
-        backRightMotor.setPower(0.5);
 
-        // Move forward for 1 second
-        sleep(1000);
+
+    public void block(){
+        blocker.setPosition(0);
+    }
+    public void unblock(){
+        blocker.setPosition(.5);
+    }
+    public void spinwheel(){
+        flyWheel.setPower(1);
+    }
+    public void stopwheel(){
+        flyWheel.setPower(0);
+    }
+    public void enableForward(int x)
+    {
+        frontLeftMotor.setPower(0.05);
+        backLeftMotor.setPower(0.05);
+        frontRightMotor.setPower(0.05);
+        backRightMotor.setPower(0.05);
+
+        // Move forward for x ms
+        sleep(x);
 
         // Stop all motors
         frontLeftMotor.setPower(0);
         backLeftMotor.setPower(0);
         frontRightMotor.setPower(0);
         backRightMotor.setPower(0);
+    }
+    public void enableLeft(int x)
+    {
+        frontLeftMotor.setPower(0.05);
+        backLeftMotor.setPower(0.05);
+        frontRightMotor.setPower(0);
+        backRightMotor.setPower(0.);
 
-        // Run the arm motor
-        armMotor.setPower(0.5);
-        sleep(1000);
-        armMotor.setPower(0);
+        // Move forward for x ms
+        sleep(x);
+
+        // Stop all motors
+        frontLeftMotor.setPower(0);
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+        backRightMotor.setPower(0);
+    }
+    public void enableRight(int x)
+    {
+        frontLeftMotor.setPower(0);
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0.05);
+        backRightMotor.setPower(0.05);
+
+        // Move forward for x ms
+        sleep(x);
+
+        // Stop all motors
+        frontLeftMotor.setPower(0);
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+        backRightMotor.setPower(0);
+    }
+    public void enableLeftDiagonalForward(int x) {
+        backLeftMotor.setPower(0.05);
+        frontRightMotor.setPower(0.05);
+
+
+        // Move forward for x seconds
+        sleep(x);
+
+        // Stop all motors
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+    }
+    public void enableRightDiagonalForward(int x)
+    {
+        frontLeftMotor.setPower(0.05);
+        backRightMotor.setPower(0.05);
+
+
+        // Move forward for x seconds
+        sleep(x);
+
+        // Stop all motors
+        frontLeftMotor.setPower(0);
+        backRightMotor.setPower(0);
+    }
+    public void enableleftDiagonalbackwards(int x)
+    {
+        frontRightMotor.setPower(-0.05);
+        backLeftMotor.setPower(-0.05);
+
+
+        // Move forward for x seconds
+        sleep( x);
+
+        // Stop all motors
+        frontRightMotor.setPower(0);
+        backLeftMotor.setPower(0);
+    }
+    public void enableRightDiagonalbackwards(int x)
+    {
+        frontLeftMotor.setPower(-0.05);
+        backRightMotor.setPower(-0.05);
+
+
+        // Move forward for x seconds
+        sleep(x);
+
+        // Stop all motors
+        frontLeftMotor.setPower(0);
+        backRightMotor.setPower(0);
+    }
+    public void enableBackwards(int x)
+    {
+        frontLeftMotor.setPower(-0.05);
+        backLeftMotor.setPower(-0.05);
+        frontRightMotor.setPower(-0.05);
+        backRightMotor.setPower(-0.05);
+
+        // Move forward for x seconds
+        sleep(x);
+
+        // Stop all motors
+        frontLeftMotor.setPower(0);
+        backLeftMotor.setPower(0);
+        frontRightMotor.setPower(0);
+        backRightMotor.setPower(0);
     }
 }
