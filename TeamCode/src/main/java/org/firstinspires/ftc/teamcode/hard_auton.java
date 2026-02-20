@@ -6,37 +6,39 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
-@Autonomous(name = "hard_auton")
+
+@Autonomous(name = "hard_auton_fixed")
 public class hard_auton extends LinearOpMode {
 
-    // ---------------- Drive Motors ----------------
-    DcMotorEx frontLeftMotor;
-    DcMotorEx backLeftMotor;
-    DcMotorEx frontRightMotor;
-    DcMotorEx backRightMotor;
+    // Drive Motors
+    DcMotorEx frontLeftMotor, backLeftMotor, frontRightMotor, backRightMotor;
 
-    // ---------------- Other Motors ----------------
-    DcMotorEx flyWheel;
-    DcMotorEx flyWheel_2;
-    DcMotorEx intake;
+    // Other Motors
+    DcMotorEx flyWheel, flyWheel_2, intake;
 
-    // ---------------- Servo ----------------
+    // Servo
     Servo blocker;
 
-    // Servo positions
+    // Servo Positions
     static final double BLOCKER_DOWN = 0.0;
-    static final double BLOCKER_UP   = 0.611; // ≈ 0.611, make 360 degree turn Asap
+    static final double BLOCKER_UP   = 0.611;
 
-    // ---------------- Velocity Constants ----------------
-    static final double DRIVE_VELOCITY     = 1200;  // ticks/sec
-    static final double SLOW_VELOCITY      = 300;
-    static final double FLYWHEEL_VELOCITY  = -1800;
-    static final double INTAKE_VELOCITY    = -800;
+    // Velocities
+    static final double DRIVE_SPEED = 1000;
+    static final double TURN_SPEED  = 800;
+    static final double FLYWHEEL_VELOCITY = -1800;
+    static final double INTAKE_VELOCITY   = -800;
+
+    // Encoder constants (adjust if needed)
+    static final double TICKS_PER_REV = 537.6; // goBILDA 312rpm example
+    static final double WHEEL_DIAMETER_INCHES = 3.78;
+    static final double TICKS_PER_INCH =
+            TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER_INCHES);
 
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void runOpMode() {
 
-        // ---------------- Hardware Mapping ----------------
+        // Hardware Mapping
         frontLeftMotor  = hardwareMap.get(DcMotorEx.class, "frontLeftMotor");
         backLeftMotor   = hardwareMap.get(DcMotorEx.class, "backLeftMotor");
         frontRightMotor = hardwareMap.get(DcMotorEx.class, "frontRightMotor");
@@ -48,194 +50,107 @@ public class hard_auton extends LinearOpMode {
 
         blocker = hardwareMap.get(Servo.class, "blocker");
 
-        // ---------------- Motor Directions ----------------
+        // Reverse left side
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // ---------------- Encoder Setup ----------------
         setupMotor(frontLeftMotor);
         setupMotor(backLeftMotor);
         setupMotor(frontRightMotor);
         setupMotor(backRightMotor);
 
-        setupMotor(flyWheel);
-        setupMotor(flyWheel_2);
-        setupMotor(intake);
+        blocker.setPosition(BLOCKER_UP);
 
         telemetry.addLine("Autonomous Ready");
         telemetry.update();
 
-        // ---------------- WAIT FOR START ----------------
         waitForStart();
         if (isStopRequested()) return;
 
-        // ---------------- Autonomous Routine ----------------
-        blocker.setPosition(BLOCKER_UP);
-//        sleep(200);
-//
-//        enableForward(600);
-//        sleep(300);
-//
-//        flyWheel.setVelocity(FLYWHEEL_VELOCITY);
-//        flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
-//        sleep(1000);
-//
-//        intake.setVelocity(INTAKE_VELOCITY);
-//        blocker.setPosition(BLOCKER_DOWN);
-//        sleep(1000);
+        driveInches(-24);
 
-//auton set position of the bot towards the corner of the triangle, parallel to it
-        enableBackwards(600);
-        sleep(1000);
         flyWheel.setVelocity(FLYWHEEL_VELOCITY);
         flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
         sleep(2000);
 
-
-
         blocker.setPosition(BLOCKER_DOWN);
         sleep(4000);
-        enableBackwards(800);
+
         intake.setVelocity(INTAKE_VELOCITY);
-        sleep(800);
-//      blocker.setPosition(BLOCKER_UP);
-//      enableForward(2000); figure out why there is major drift only during auton.
-//      enableBackward(2000);
-//      turnLeft(500);
-//      flyWheel.setVelocity(FLYWHEEL_VELOCITY);
-//      flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
-//      2 BALL
-        //yash's code
-        //make sure we are all productive at the mill and coding
-        //also whenever code needs assistance Vivaan can help
-        intake.setVelocity(0);
-        flyWheel.setVelocity(0);
-        flyWheel_2.setVelocity(0);
-////going based of estimation(change when test)
-//        enableForward(200);
-//        turnLeft(100);
-//        intake.setVelocity(INTAKE_VELOCITY);
-//        enableBackwards(200);
-//        intake.setVelocity(0);
-//        enableForward(200);
-//        turnRight(100);
-//        enableBackwards(200);
-//        flyWheel.setVelocity(FLYWHEEL_VELOCITY);
-//        flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
-//        intake.setVelocity(INTAKE_VELOCITY);
-//        intake.setVelocity(0);
-//        blocker.setPosition(BLOCKER_DOWN);
+        driveInches(-8);
 
-
-
-
-
-
-
-
-
-        // ---------------- Stop Everything ----------------
-        stopDrive();
         intake.setVelocity(0);
         flyWheel.setVelocity(0);
         flyWheel_2.setVelocity(0);
     }
 
-    // ================= Movement Methods =================
-    public void turnLeft(int timeMs)
-    {
-        frontLeftMotor.setPower(1);
-        backRightMotor.setPower(1);
-        sleepSafe(timeMs);
-        stopDrive();
 
-    }
-    public void turnRight(int timeMs)
-    {
-        frontLeftMotor.setPower(1);
-        backRightMotor.setPower(1);
-        sleepSafe(timeMs);
-        stopDrive();
+    private void driveInches(double inches) {
 
-    }
-    public void enableForward(int timeMs) {
-        setAllDriveVelocity(DRIVE_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
+        int move = (int)(inches * TICKS_PER_INCH);
+
+        setTargetPosition(move, move, move, move);
+        runToPosition(DRIVE_SPEED);
     }
 
-    public void enableBackwards(int timeMs) {
-        setAllDriveVelocity(-DRIVE_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
-    }
-    //strafe left
-    public void enableLeft(int timeMs) {
-        frontLeftMotor.setVelocity(SLOW_VELOCITY);
-        backLeftMotor.setVelocity(SLOW_VELOCITY);
-        frontRightMotor.setVelocity(0);
-        backRightMotor.setVelocity(0);
-        sleepSafe(timeMs);
-        stopDrive();
-    }
-    //strafe right
-    public void enableRight(int timeMs) {
-        frontLeftMotor.setVelocity(0);
-        backLeftMotor.setVelocity(0);
-        frontRightMotor.setVelocity(SLOW_VELOCITY);
-        backRightMotor.setVelocity(SLOW_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
+    private void turnDegrees(double degrees) {
+
+        double robotDiameter = 15;
+        double turnCircumference = Math.PI * robotDiameter;
+        double inches = (degrees / 360.0) * turnCircumference;
+
+        int move = (int)(inches * TICKS_PER_INCH);
+
+        setTargetPosition(-move, -move, move, move);
+        runToPosition(TURN_SPEED);
     }
 
-    public void enableLeftDiagonalForward(int timeMs) {
-        backLeftMotor.setVelocity(SLOW_VELOCITY);
-        frontRightMotor.setVelocity(SLOW_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
+    private void setTargetPosition(int fl, int bl, int fr, int br) {
+
+        frontLeftMotor.setTargetPosition(frontLeftMotor.getCurrentPosition() + fl);
+        backLeftMotor.setTargetPosition(backLeftMotor.getCurrentPosition() + bl);
+        frontRightMotor.setTargetPosition(frontRightMotor.getCurrentPosition() + fr);
+        backRightMotor.setTargetPosition(backRightMotor.getCurrentPosition() + br);
+
+        frontLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void enableRightDiagonalForward(int timeMs) {
-        frontLeftMotor.setVelocity(SLOW_VELOCITY);
-        backRightMotor.setVelocity(SLOW_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
-    }
+    private void runToPosition(double velocity) {
 
-    public void enableLeftDiagonalBackwards(int timeMs) {
-        frontRightMotor.setVelocity(-SLOW_VELOCITY);
-        backLeftMotor.setVelocity(-SLOW_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
-    }
-
-    public void enableRightDiagonalBackwards(int timeMs) {
-        frontLeftMotor.setVelocity(-SLOW_VELOCITY);
-        backRightMotor.setVelocity(-SLOW_VELOCITY);
-        sleepSafe(timeMs);
-        stopDrive();
-    }
-
-    // ================= Helper Methods =================
-
-    private void setAllDriveVelocity(double velocity) {
         frontLeftMotor.setVelocity(velocity);
         backLeftMotor.setVelocity(velocity);
         frontRightMotor.setVelocity(velocity);
         backRightMotor.setVelocity(velocity);
+
+        while (opModeIsActive() &&
+                (frontLeftMotor.isBusy() ||
+                 backLeftMotor.isBusy() ||
+                 frontRightMotor.isBusy() ||
+                 backRightMotor.isBusy())) {
+            idle();
+        }
+
+        stopDrive();
+
+        frontLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     private void stopDrive() {
-        setAllDriveVelocity(0);
+        frontLeftMotor.setVelocity(0);
+        backLeftMotor.setVelocity(0);
+        frontRightMotor.setVelocity(0);
+        backRightMotor.setVelocity(0);
     }
 
     private void setupMotor(DcMotorEx motor) {
         motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    private void sleepSafe(int ms) {
-        if (opModeIsActive()) sleep(ms);
     }
 }

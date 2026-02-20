@@ -4,6 +4,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
+import com.pedropathing.ftc.localization.Encoder;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.ftc.localization.constants.TwoWheelConstants;
 import com.pedropathing.paths.PathConstraints;
@@ -20,12 +21,15 @@ public class Constants {
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
-            .rightFrontMotorName("rf")
-            .rightRearMotorName("rr")
-            .leftRearMotorName("lr")
-            .leftFrontMotorName("lf")
+            .rightFrontMotorName("frontRightMotor")
+            .rightRearMotorName("backRightMotor")
+            .leftRearMotorName("backLeftMotor")
+            .leftFrontMotorName("frontLeftMotor")
 
-            .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE);
+            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+            .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
     public static Follower createFollower(HardwareMap hardwareMap) {
@@ -39,10 +43,13 @@ public class Constants {
     }
     public static TwoWheelConstants localizerConstants = new TwoWheelConstants()
 
-        .forwardEncoder_HardwareMapName("leftFront")
-        .strafeEncoder_HardwareMapName("rightRear")
-        .forwardPodY(8.5)
-        .strafePodX(7.5)
+        .forwardEncoder_HardwareMapName("flyWheel")
+        .strafeEncoder_HardwareMapName("frontLeftMotor")
+        //.forwardPodY(-7)
+        //.strafePodX(-6.5)
+            .strafeEncoderDirection(Encoder.FORWARD)
+        .strafeTicksToInches(1.0/2000.0)
+        .forwardTicksToInches(-0.31742945627989827) //about 20k ticks in 48 inches?
         .IMU_HardwareMapName("imu")
         .IMU_Orientation(
                 new RevHubOrientationOnRobot(

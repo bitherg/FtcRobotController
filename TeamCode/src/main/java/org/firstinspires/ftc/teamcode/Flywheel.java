@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Config
@@ -52,7 +53,8 @@ public class Flywheel extends LinearOpMode {
         // ================= BLOCKER =================
         CRServo blocker = hardwareMap.get(CRServo.class, "blocker");
         blocker.setPower(0.0);
-
+        VoltageSensor vs = hardwareMap.voltageSensor.get("Control Hub");
+        double voltage = vs.getVoltage();
         telemetry.addLine("TeleOp Ready");
         telemetry.update();
 
@@ -61,7 +63,7 @@ public class Flywheel extends LinearOpMode {
         double flyspeed = 1.0;
         double flywheelDirection = 0.0;
         boolean wasPressedUp = false;
-
+        boolean wasPressedUp2 = false;
         while (opModeIsActive()) {
 
             // ================= BLOCKER CONTROL =================
@@ -83,10 +85,10 @@ public class Flywheel extends LinearOpMode {
             if (gamepad1.dpad_up && flyspeed < 1.0 && !wasPressedUp) flyspeed += 0.2;
             wasPressedUp = gamepad1.dpad_up;
 
-            if (gamepad1.dpad_down && flyspeed > 0.2) flyspeed -= 0.2;
-
-            flyWheel.setPower(-flywheelDirection * flyspeed);
-            flyWheel_2.setPower(-flywheelDirection * flyspeed);
+            if (gamepad1.dpad_down && flyspeed > 0.2 && !wasPressedUp2) flyspeed -= 0.2;
+            wasPressedUp2 = gamepad1.dpad_down;
+            flyWheel.setPower(-flywheelDirection * flyspeed* (12/voltage));
+            flyWheel_2.setPower(-flywheelDirection * flyspeed* (12/voltage));
 
             // ================= INTAKE =================
             if (gamepad1.right_bumper) intake.setPower(-1.0);
@@ -109,7 +111,7 @@ public class Flywheel extends LinearOpMode {
                 turnBias = leftStickX * Math.abs(leftStickY) * turnCoefficient;
             }
 
-            // Corrected mecanum formula for your motor directions
+//             Corrected mecanum formula for your motor directions
             double fl = leftStickY + rightStickX + turnBias;
             double bl = leftStickY + rightStickX - turnBias;  // back left reversed motor
             double fr = leftStickY - rightStickX - turnBias;
@@ -118,7 +120,7 @@ public class Flywheel extends LinearOpMode {
             // Normalize
             double y  = -gamepad1.left_stick_y;
             double x  = gamepad1.left_stick_x * 1.1;
-            double rx = gamepad1.right_stick_x;
+            double rx = -gamepad1.right_stick_y;
 
             double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
             frontLeftMotor.setPower((y + x + rx) / denominator);
