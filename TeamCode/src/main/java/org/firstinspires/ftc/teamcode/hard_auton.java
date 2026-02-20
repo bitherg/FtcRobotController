@@ -28,10 +28,10 @@ public class hard_auton extends LinearOpMode {
     static final double BLOCKER_UP   = 0.611; // ≈ 0.611, make 360 degree turn Asap
 
     // ---------------- Velocity Constants ----------------
-    static final double DRIVE_VELOCITY     = 1200;  // ticks/sec
-    static final double SLOW_VELOCITY      = 300;
-    static final double FLYWHEEL_VELOCITY  = -1800;
-    static final double INTAKE_VELOCITY    = -800;
+//    static final double DRIVE_VELOCITY     = 1200;  // ticks/sec
+//    static final double SLOW_VELOCITY      = 300;
+//   static final double FLYWHEEL_VELOCITY  = -1800;
+//  static final double INTAKE_VELOCITY    = -800;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -49,7 +49,6 @@ public class hard_auton extends LinearOpMode {
         blocker = hardwareMap.get(Servo.class, "blocker");
 
         // ---------------- Motor Directions ----------------
-        frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // ---------------- Encoder Setup ----------------
@@ -67,37 +66,35 @@ public class hard_auton extends LinearOpMode {
 
         // ---------------- WAIT FOR START ----------------
         waitForStart();
-        if (isStopRequested()) return;
+        
+//        if (isStopRequested()) return;
 
         // ---------------- Autonomous Routine ----------------
-        blocker.setPosition(BLOCKER_UP);
+//        blocker.setPosition(BLOCKER_UP);
 //        sleep(200);
 //
 //        enableForward(600);
 //        sleep(300);
 //
-//        flyWheel.setVelocity(FLYWHEEL_VELOCITY);
-//        flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
+//        flyWheel.setVelocity(-1);
+//        flyWheel_2.setVelocity(1);
 //        sleep(1000);
 //
-//        intake.setVelocity(INTAKE_VELOCITY);
+//        intake.setVelocity(1);
 //        blocker.setPosition(BLOCKER_DOWN);
 //        sleep(1000);
 
 //auton set position of the bot towards the corner of the triangle, parallel to it
+        blocker.setPosition(BLOCKER_DOWN);
+        sleep(1000);
         enableBackwards(600);
         sleep(1000);
-        flyWheel.setVelocity(FLYWHEEL_VELOCITY);
-        flyWheel_2.setVelocity(FLYWHEEL_VELOCITY);
+        flyWheel.setVelocity(-1);
+        flyWheel_2.setVelocity(1);
         sleep(2000);
-
-
-
-        blocker.setPosition(BLOCKER_DOWN);
-        sleep(4000);
-        enableBackwards(800);
-        intake.setVelocity(INTAKE_VELOCITY);
-        sleep(800);
+        intake.setVelocity(1);
+        sleep(1000);
+        blocker.setPosition(BLOCKER_UP);
 //      blocker.setPosition(BLOCKER_UP);
 //      enableForward(2000); figure out why there is major drift only during auton.
 //      enableBackward(2000);
@@ -108,9 +105,9 @@ public class hard_auton extends LinearOpMode {
         //yash's code
         //make sure we are all productive at the mill and coding
         //also whenever code needs assistance Vivaan can help
-        intake.setVelocity(0);
-        flyWheel.setVelocity(0);
-        flyWheel_2.setVelocity(0);
+//        .setVelocity(0);
+//        flyWheel.setVelocity(0);
+//        flyWheel_2.setVelocity(0);
 ////going based of estimation(change when test)
 //        enableForward(200);
 //        turnLeft(100);
