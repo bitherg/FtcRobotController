@@ -29,7 +29,7 @@ public class hard_auton extends LinearOpMode {
     static final double BLOCKER_UP   = 0.611; // ≈ 0.611, make 360 degree turn Asap
 
     // ---------------- Velocity Constants ----------------
-    static final double DRIVE_VELOCITY     = 1200;  // ticks/sec
+        static final double DRIVE_VELOCITY     = 1200;  // ticks/sec
     static final double SLOW_VELOCITY      = 300;
 //   static final double FLYWHEEL_VELOCITY  = -1800;
 //  static final double INTAKE_VELOCITY    = -800;

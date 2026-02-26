@@ -8,82 +8,92 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "PID Distance Auto (FTCLib) - Tuning", group = "Auto")
+// FTC Dashboard
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+
+@Config
+@Autonomous(name = "PID Distance Auto (FTCLib) - Dashboard Tuning", group = "Auto")
 public class PIDDistanceAutoFTCLib extends LinearOpMode {
 
     // ======= Hardware =======
     private DcMotorEx frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor;
 
-    // Optional IMU heading hold (recommended if you have an IMU)
+    // Optional IMU heading hold
     private BNO055IMU imu;
-    private boolean useHeadingHold = false;
+    private boolean imuDetected = false;
 
     // =======================
-    // ===== PID TUNING ======
+    // ===== DASHBOARD TUNING =
     // =======================
+    // NOTE: Dashboard only edits public static fields
 
     // ---- Toggle tuning mode ----
-    private static final boolean TUNING_MODE = true;
+    public static boolean TUNING_MODE = true;
 
-    // ---- Test distance (change this while tuning) ----
-    private static final double TEST_DISTANCE = 24.0;   // try 6, 24, 36
+    // ---- Test distance (change live) ----
+    public static double TEST_DISTANCE = 24.0;   // try 6, 24, 36
 
-    // ---- Distance PID ----
-    private static double DIST_P = 0.012;
-    private static double DIST_I = 0.0;
-    private static double DIST_D = 0.0008;
+    // ---- Distance PID (change live) ----
+    public static double DIST_P = 0.012;
+    public static double DIST_I = 0.0;
+    public static double DIST_D = 0.0008;
 
-    // ---- Heading PID ----
-    private static double HEAD_P = 0.015;
-    private static double HEAD_I = 0.0;
-    private static double HEAD_D = 0.0006;
+    // ---- Heading Hold ----
+    public static boolean USE_HEADING_HOLD = false; // turn on after distance is tuned
+    public static double HEAD_P = 0.015;
+    public static double HEAD_I = 0.0;
+    public static double HEAD_D = 0.0006;
+    public static double TURN_CLAMP = 0.25; // max turn power from heading hold
 
     // ---- Motion limits ----
-    private static double MAX_POWER = 0.65;
-    private static double MIN_POWER = 0.08;
+    public static double MAX_POWER = 0.65;
+    public static double MIN_POWER = 0.08;
 
     // ---- Stop conditions ----
-    private static int POS_TOL_TICKS = 40;
-    private static double VEL_TOL_TPS = 60;
+    public static int POS_TOL_TICKS = 40;
+    public static double VEL_TOL_TPS = 60;
 
-    // Controllers (created in initHardware)
-    private PIDController distancePID;
-    private PIDController headingPID;
-
-    // ======= Safety timeout =======
-    private static final double TIMEOUT_S = 4.0;      // safety timeout for the move
+    // ---- Safety timeout ----
+    public static double TIMEOUT_S = 4.0;
 
     // ======= Encoder / Robot constants =======
     // Set this to YOUR motor ticks per rev.
-    // Common examples:
-    // - goBILDA 5202/5203 312RPM: 537.7 ticks/rev
-    // - goBILDA 5202/5203 435RPM: 383.6 ticks/rev
-    private static final double TICKS_PER_REV = 537.7;
+    public static double TICKS_PER_REV = 537.7;
 
     // Wheel + gear ratio
-    private static final double WHEEL_DIAMETER_IN = 3.78;  // change to yours
-    private static final double GEAR_RATIO = 1.0;          // output/input, usually 1.0 unless geared
+    public static double WHEEL_DIAMETER_IN = 3.78;  // change to yours
+    public static double GEAR_RATIO = 1.0;          // output/input, usually 1.0 unless geared
 
-    // Optional: use this to correct measured distance (ex: 1.03 if it goes short)
-    private static final double DISTANCE_SCALE = 1.00;
+    // Optional: scale correction after measuring (ex: 1.03 if it goes short)
+    public static double DISTANCE_SCALE = 1.00;
 
-    private static final double TICKS_PER_INCH =
-            DISTANCE_SCALE * (TICKS_PER_REV * GEAR_RATIO) / (Math.PI * WHEEL_DIAMETER_IN);
+    // Controllers
+    private PIDController distancePID;
+    private PIDController headingPID;
+
+    private double ticksPerInch;
 
     @Override
     public void runOpMode() {
+        // Dashboard telemetry + Driver Station telemetry together
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
         initHardware();
 
         telemetry.addLine("Ready. Press start.");
-        telemetry.addLine(TUNING_MODE ? "TUNING_MODE = ON" : "TUNING_MODE = OFF");
+        telemetry.addLine("Open Dashboard at: http://192.168.43.1:8080/dash");
+        telemetry.addData("IMU Detected", imuDetected);
         telemetry.update();
 
         waitForStart();
         if (isStopRequested()) return;
 
-        // Use current heading as the heading to hold (only if IMU is present)
-        double holdHeadingDeg = useHeadingHold ? getHeadingDeg() : 0.0;
+        // Use current heading as the heading to hold (only if enabled + IMU detected)
+        double holdHeadingDeg = (USE_HEADING_HOLD && imuDetected) ? getHeadingDeg() : 0.0;
 
+        // One move for tuning (edit TEST_DISTANCE live in Dashboard)
         if (TUNING_MODE) {
             driveToDistancePID(TEST_DISTANCE, holdHeadingDeg);
         } else {
@@ -100,14 +110,17 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
         backRightMotor  = hardwareMap.get(DcMotorEx.class, "backRightMotor");
 
         // Reverse as needed (common: reverse left side)
+
         frontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
-        backLeftMotor.setDirection(DcMotor.Direction.REVERSE);
 
         // Brake helps stop closer to target
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // Compute ticks per inch
+        ticksPerInch = DISTANCE_SCALE * (TICKS_PER_REV * GEAR_RATIO) / (Math.PI * WHEEL_DIAMETER_IN);
 
         resetAndRunEncoders();
 
@@ -117,28 +130,27 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
             BNO055IMU.Parameters p = new BNO055IMU.Parameters();
             p.angleUnit = BNO055IMU.AngleUnit.DEGREES;
             imu.initialize(p);
-            useHeadingHold = true;
+            imuDetected = true;
         } catch (Exception e) {
-            useHeadingHold = false;
+            imuDetected = false;
         }
 
-        // PID controllers from tuning variables
+        // Create controllers (we will update gains inside drive loop so dashboard edits apply)
         distancePID = new PIDController(DIST_P, DIST_I, DIST_D);
         headingPID  = new PIDController(HEAD_P, HEAD_I, HEAD_D);
-
         distancePID.setTolerance(POS_TOL_TICKS);
-        headingPID.setTolerance(1.5); // degrees
+        headingPID.setTolerance(1.5);
     }
 
     /**
      * Drive forward/backward a given number of inches using PID on average encoder position.
      * @param inches positive forward, negative backward
-     * @param holdHeadingDeg heading to maintain (ignored if no IMU)
+     * @param holdHeadingDeg heading to maintain (only if enabled + IMU detected)
      */
     private void driveToDistancePID(double inches, double holdHeadingDeg) {
         resetAndRunEncoders();
 
-        int targetTicks = (int) Math.round(inches * TICKS_PER_INCH);
+        int targetTicks = (int) Math.round(inches * ticksPerInch);
 
         distancePID.reset();
         headingPID.reset();
@@ -147,6 +159,12 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
         timer.reset();
 
         while (opModeIsActive() && timer.seconds() < TIMEOUT_S) {
+
+            // Update PID gains live (so Dashboard changes apply immediately)
+            distancePID.setPID(DIST_P, DIST_I, DIST_D);
+            headingPID.setPID(HEAD_P, HEAD_I, HEAD_D);
+            distancePID.setTolerance(POS_TOL_TICKS);
+
             int pos = getAverageEncoderTicks();
             int error = targetTicks - pos;
 
@@ -159,16 +177,17 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
                 forward = applyMinPower(forward, MIN_POWER);
             }
 
-            // Heading correction (turn) if IMU present
+            // Heading correction (turn) if enabled + IMU present
             double turn = 0.0;
             double heading = 0.0;
             double headingError = 0.0;
 
-            if (useHeadingHold) {
+            boolean headingActive = USE_HEADING_HOLD && imuDetected;
+            if (headingActive) {
                 heading = getHeadingDeg();
                 headingError = angleWrapDeg(holdHeadingDeg - heading);
                 turn = headingPID.calculate(heading, holdHeadingDeg);
-                turn = clamp(turn, -0.25, 0.25);
+                turn = clamp(turn, -TURN_CLAMP, TURN_CLAMP);
             }
 
             // Apply to drivetrain (arcade, no strafe)
@@ -179,24 +198,37 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
             boolean atPos = Math.abs(error) <= POS_TOL_TICKS;
             boolean settled = Math.abs(vel) <= VEL_TOL_TPS;
 
-            // ====== TUNING TELEMETRY ======
-            telemetry.addLine("===== PID TUNING =====");
+            // ====== TELEMETRY ======
+            telemetry.addLine("===== DASHBOARD TUNING =====");
+            telemetry.addLine("===== RAW ENCODERS =====");
+            telemetry.addData("FL pos", frontLeftMotor.getCurrentPosition());
+            telemetry.addData("FR pos", frontRightMotor.getCurrentPosition());
+            telemetry.addData("BL pos", backLeftMotor.getCurrentPosition());
+            telemetry.addData("BR pos", backRightMotor.getCurrentPosition());
+
+            telemetry.addData("FL vel", "%.1f", frontLeftMotor.getVelocity());
+            telemetry.addData("FR vel", "%.1f", frontRightMotor.getVelocity());
+            telemetry.addData("BL vel", "%.1f", backLeftMotor.getVelocity());
+            telemetry.addData("BR vel", "%.1f", backRightMotor.getVelocity());
             telemetry.addData("TestInches", inches);
-            telemetry.addData("TICKS_PER_INCH", "%.3f", TICKS_PER_INCH);
+            telemetry.addData("TicksPerInch", "%.3f", ticksPerInch);
 
             telemetry.addData("DIST P", DIST_P);
             telemetry.addData("DIST I", DIST_I);
             telemetry.addData("DIST D", DIST_D);
 
+            telemetry.addData("USE_HEADING_HOLD", headingActive);
             telemetry.addData("HEAD P", HEAD_P);
             telemetry.addData("HEAD I", HEAD_I);
             telemetry.addData("HEAD D", HEAD_D);
+            telemetry.addData("TURN_CLAMP", TURN_CLAMP);
 
             telemetry.addData("MAX_POWER", MAX_POWER);
             telemetry.addData("MIN_POWER", MIN_POWER);
 
             telemetry.addData("POS_TOL_TICKS", POS_TOL_TICKS);
             telemetry.addData("VEL_TOL_TPS", VEL_TOL_TPS);
+            telemetry.addData("TIMEOUT_S", TIMEOUT_S);
 
             telemetry.addLine("===== RUN DATA =====");
             telemetry.addData("TargetTicks", targetTicks);
@@ -209,11 +241,11 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
             telemetry.addData("Settled", settled);
             telemetry.addData("Time", "%.2f", timer.seconds());
 
-            if (useHeadingHold) {
+            if (headingActive) {
                 telemetry.addData("Heading", "%.1f", heading);
                 telemetry.addData("HeadingErr", "%.1f", headingError);
             } else {
-                telemetry.addLine("IMU: not detected (heading hold OFF)");
+                telemetry.addData("IMU Detected", imuDetected);
             }
 
             telemetry.update();
@@ -240,19 +272,24 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
     }
 
     private int getAverageEncoderTicks() {
-        return (frontLeftMotor.getCurrentPosition() + frontRightMotor.getCurrentPosition()
-                + backLeftMotor.getCurrentPosition() + backRightMotor.getCurrentPosition()) / 4;
+        int fl = -frontLeftMotor.getCurrentPosition();  // negate because left motors are REVERSE
+        int bl = backLeftMotor.getCurrentPosition();
+        int fr =  frontRightMotor.getCurrentPosition();
+        int br =  backRightMotor.getCurrentPosition();
+        return (fl + fr + bl + br) / 4;
     }
 
     private double getAverageVelocityTicksPerSec() {
-        // DcMotorEx provides getVelocity() in ticks/second
-        return (frontLeftMotor.getVelocity() + frontRightMotor.getVelocity()
-                + backLeftMotor.getVelocity() + backRightMotor.getVelocity()) / 4.0;
+        double fl = -frontLeftMotor.getVelocity();      // negate for REVERSE
+        double bl = backLeftMotor.getVelocity();
+        double fr =  frontRightMotor.getVelocity();
+        double br =  backRightMotor.getVelocity();
+        return (fl + fr + bl + br) / 4.0;
     }
 
     /**
      * forward = + drives forward. turn = + turns right.
-     * Works for tank or mecanum as "arcade" on all 4 motors (no strafe).
+     * Arcade style on 4 motors (no strafe).
      */
     private void setDrivePowers(double forward, double turn) {
         double left = forward - turn;
@@ -287,7 +324,6 @@ public class PIDDistanceAutoFTCLib extends LinearOpMode {
     }
 
     private double getHeadingDeg() {
-        // BNO055IMU: firstAngle is typically Z (yaw) for FTC default orientation
         return imu.getAngularOrientation().firstAngle;
     }
 
