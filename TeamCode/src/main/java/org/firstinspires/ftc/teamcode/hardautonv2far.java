@@ -8,8 +8,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "hardautonv2", group = "auto")
-public class hardautonv2 extends LinearOpMode {
+@Autonomous(name = "hardautonv2far", group = "auto")
+public class hardautonv2far extends LinearOpMode {
 
     DcMotorEx leftFront, rightFront, leftRear, rightRear, flyWheel, flyWheel_2, intake;
     Servo blocker;
@@ -28,18 +28,18 @@ public class hardautonv2 extends LinearOpMode {
     public void runOpMode() {
 
         // ----- Hardware Map -----
-        leftFront  = hardwareMap.get(DcMotorEx.class, "frontLeftMotor");
-        leftRear   = hardwareMap.get(DcMotorEx.class, "backLeftMotor");
+        leftFront = hardwareMap.get(DcMotorEx.class, "frontLeftMotor");
+        leftRear = hardwareMap.get(DcMotorEx.class, "backLeftMotor");
         rightFront = hardwareMap.get(DcMotorEx.class, "frontRightMotor");
-        rightRear  = hardwareMap.get(DcMotorEx.class, "backRightMotor");
+        rightRear = hardwareMap.get(DcMotorEx.class, "backRightMotor");
 
-        flyWheel   = hardwareMap.get(DcMotorEx.class, "flyWheel");
+        flyWheel = hardwareMap.get(DcMotorEx.class, "flyWheel");
         flyWheel_2 = hardwareMap.get(DcMotorEx.class, "flyWheel_2");
 
-        intake     = hardwareMap.get(DcMotorEx.class, "intake");
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
 
-        blocker    = hardwareMap.get(Servo.class, "blocker");
-        blocker.setPosition(FEED_RETRACT);
+        blocker = hardwareMap.get(Servo.class, "blocker");
+        //blocker.setPosition(FEED_RETRACT);
 
         // ----- Motor Setup -----
         flyWheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -54,8 +54,8 @@ public class hardautonv2 extends LinearOpMode {
         rightRear.setDirection(DcMotor.Direction.FORWARD);
 
         // If flywheels face opposite directions, you may need:
-        // flyWheel.setDirection(DcMotor.Direction.FORWARD);
-        // flyWheel_2.setDirection(DcMotor.Direction.REVERSE);
+        flyWheel.setDirection(DcMotor.Direction.REVERSE);
+        flyWheel_2.setDirection(DcMotor.Direction.REVERSE);
 
         telemetry.addLine("Ready. Press START!");
         telemetry.update();
@@ -64,38 +64,50 @@ public class hardautonv2 extends LinearOpMode {
         if (isStopRequested()) return;
 
         timer.reset();
+        blocker.setPosition(FEED_PUSH);
+        setDrivePowers(-1,-1,-1,-1);
+        sleep(1250);
+        setDrivePowers(0,0.5,0,0.5);
+        sleep(500);
+        stopDrive();
+        flyWheel.setPower(0.8);
+        flyWheel_2.setPower(0.8);
+        sleep(2000);
+        intake.setPower(-1);
+        sleep(2000);
+        flyWheel.setPower(0.7);
+        flyWheel_2.setPower(0.7);
+        sleep(2000);
+        blocker.setPosition(FEED_RETRACT);
+        sleep(1000);
 
+        // Stop everything after shot
+        intake.setPower(0);
+        flyWheel.setPower(0);
+        flyWheel_2.setPower(0);
+
+        blocker.setPosition(FEED_PUSH);
+
+        blocker.setPosition(FEED_RETRACT);
         boolean shotDone = false;
 
-        while (opModeIsActive()) {
-            double t = timer.seconds();
+        // Example: drive forward first
+//        while (timer.seconds() < 1.200) {
+//            drive(0.5, 0.0, 0.0);
+//        }
+        // Shoot once during this window
+//        stopDrive();
+  //      shootOnceVoltageComp(1);
 
-            // Example: drive forward first
-            if (t < 1.500) {
-                drive(0.5, 0.0, 0.0);
-            }
-            // Shoot once during this window
-            else if (t < 2) {
-                stopDrive();
-                if (!shotDone) {
-                    shootOnceVoltageComp(1.0, 0.50); // tunedPower, spinUpSeconds
-                    shotDone = true;
-                }
-            } else {
-                stopDrive();
-                break;
-            }
+        //drive(0.0, 0.0, 0.5);
 
-            telemetry.addData("Time (s)", "%.2f", t);
-            telemetry.addData("Battery (V)", "%.2f", getBatteryVoltage());
-            telemetry.update();
-        }
+
+        //shootOnceVoltageComp(1.0, 0.50); // tunedPower, spinUpSeconds
 
         stopDrive();
-        setFlywheelPower(0);
     }
 
-    // ---------------- Voltage Helpers ----------------
+// ---------------- Voltage Helpers ----------------
 
     private double getBatteryVoltage() {
         double result = Double.POSITIVE_INFINITY;
@@ -106,7 +118,9 @@ public class hardautonv2 extends LinearOpMode {
         return (result == Double.POSITIVE_INFINITY) ? 0.0 : result;
     }
 
-    /** Scale a tuned power value (tuned at TUNED_VOLTAGE) to current voltage. */
+    /**
+     * Scale a tuned power value (tuned at TUNED_VOLTAGE) to current voltage.
+     */
     private double compensatePower(double tunedPower) {
         double v = getBatteryVoltage();
         if (v <= 1.0) return tunedPower; // fallback if sensor fails
@@ -115,7 +129,9 @@ public class hardautonv2 extends LinearOpMode {
         return Math.max(0.0, Math.min(1.0, scaled));
     }
 
-    /** Optional: scale drive a little, but not too aggressively */
+    /**
+     * Optional: scale drive a little, but not too aggressively
+     */
     private double compensateDrive(double tunedPower) {
         double v = getBatteryVoltage();
         if (v <= 1.0) return tunedPower;
@@ -125,13 +141,13 @@ public class hardautonv2 extends LinearOpMode {
         return Math.max(-1.0, Math.min(1.0, scaled));
     }
 
-    // ---------------- Drive ----------------
+// ---------------- Drive ----------------
 
     private void drive(double forward, double strafe, double turn) {
         // Voltage-compensate the inputs (simple + effective for time-based auton)
         forward = compensateDrive(forward);
-        strafe  = compensateDrive(strafe);
-        turn    = compensateDrive(turn);
+        strafe = compensateDrive(strafe);
+        turn = compensateDrive(turn);
 
         double lf = forward + strafe + turn;
         double rf = forward - strafe - turn;
@@ -145,13 +161,17 @@ public class hardautonv2 extends LinearOpMode {
         double max = Math.max(1.0, Math.max(Math.abs(lf),
                 Math.max(Math.abs(rf), Math.max(Math.abs(lr), Math.abs(rr)))));
 
-        lf /= max; rf /= max; lr /= max; rr /= max;
+        lf /= max;
+        rf /= max;
+        lr /= max;
+        rr /= max;
 
         leftFront.setPower(lf);
         rightFront.setPower(rf);
         leftRear.setPower(lr);
         rightRear.setPower(rr);
     }
+
 
     private void stopDrive() {
         setDrivePowers(0, 0, 0, 0);
@@ -164,7 +184,7 @@ public class hardautonv2 extends LinearOpMode {
         rightRear.setZeroPowerBehavior(behavior);
     }
 
-    // ---------------- Flywheel / Shooting ----------------
+// ---------------- Flywheel / Shooting ----------------
 
     private void setFlywheelPower(double tunedPower) {
         // Apply voltage compensation to maintain similar RPM across batteries
@@ -173,15 +193,25 @@ public class hardautonv2 extends LinearOpMode {
         flyWheel_2.setPower(p);
     }
 
-    /** Shoots exactly one ring (blocking) */
-    private void shootOnceVoltageComp(double tunedFlywheelPower, double spinUpSeconds) {
+    /**
+     * Shoots exactly one ring (blocking)
+     */
+    private void shootOnceVoltageComp(double tunedFlywheelPower) {
+
+
         setFlywheelPower(tunedFlywheelPower);
-        sleep((long)(spinUpSeconds * 1000));
+        sleep(2000);
+        intake.setPower(-1);
+        sleep(2000);
+        blocker.setPosition(FEED_RETRACT);
+        sleep(1000);
+
+        // Stop everything after shot
+        intake.setPower(0);
+        flyWheel.setPower(0);
+        flyWheel_2.setPower(0);
 
         blocker.setPosition(FEED_PUSH);
-        sleep(500);
 
-        blocker.setPosition(FEED_RETRACT);
-        sleep(500);
     }
 }
