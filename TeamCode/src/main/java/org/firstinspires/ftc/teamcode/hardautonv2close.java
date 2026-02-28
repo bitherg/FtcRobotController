@@ -68,13 +68,42 @@ public class hardautonv2close extends LinearOpMode {
         boolean shotDone = false;
 
         // Example: drive forward first
-        while (timer.seconds() < 1.300) {
+        while (timer.seconds() < 1.100) {
             drive(0.5, 0.0, 0.0);
         }
         // Shoot once during this window
         stopDrive();
         sleep(200);
-        shootOnceVoltageComp(0.8);
+        shootOnceVoltageComp(0.69);
+        sleep(500);
+        timer.reset();
+        while (timer.seconds()<0.495) {
+            drive(0.0, 0.0, 0.6);
+        }
+        intake.setPower(-1);
+        timer.reset();
+        while(timer.seconds()<1.15){
+            drive(0.5,0.0,0.0);
+        }
+        stopDrive();
+        sleep(500);
+        intake.setPower(0);
+        timer.reset();
+        while(timer.seconds()<0.8){
+            drive(-0.5,0.0,0.0);
+        }
+
+        sleep(300);
+        timer.reset();
+        while (timer.seconds()<0.525) {
+            drive(0.0, 0.0, -0.6);
+        }
+        stopDrive();
+        sleep(300);
+        sleep(200);
+        shootOnceVoltageComp(0.67);
+        sleep(500);
+
 
         //drive(0.0, 0.0, 0.5);
 
